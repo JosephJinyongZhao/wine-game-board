@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>调酒商业模拟 · 排行榜</title>
+<style>
+  :root {
+    --gold: #d4a853;
+    --gold-light: #f0d68a;
+    --dark: #1a1a2e;
+    --dark2: #16213e;
+    --dark3: #0f3460;
+    --wine: #722f37;
+    --wine-light: #a84448;
+    --text: #e8e8e8;
+    --text-dim: #9ca3af;
+    --card-bg: rgba(255,255,255,0.06);
+    --card-border: rgba(212,168,83,0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, var(--dark) 0%, var(--dark2) 50%, var(--dark3) 100%);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .hero {
+    text-align: center;
+    padding: 2.5rem 1rem 1.5rem;
+    background: linear-gradient(180deg, rgba(114,47,55,0.3) 0%, transparent 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 50% 50%, rgba(212,168,83,0.05) 0%, transparent 50%);
+    animation: pulse 8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 1; }
+  }
+  .hero-icon { font-size: 3rem; margin-bottom: 0.5rem; position: relative; }
+  .hero h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+    letter-spacing: 0.05em;
+  }
+  .hero .subtitle {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-top: 0.4rem;
+    position: relative;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(26,26,46,0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--card-border);
+  }
+  .tab {
+    padding: 0.5rem 1.2rem;
+    border-radius: 2rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid var(--card-border);
+    background: transparent;
+    color: var(--text-dim);
+  }
+  .tab.active {
+    background: linear-gradient(135deg, var(--wine), var(--wine-light));
+    color: #fff;
+    border-color: var(--wine-light);
+  }
+
+  /* Content */
+  .content { padding: 1rem; max-width: 600px; margin: 0 auto; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Leaderboard */
+  .rank-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1rem;
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .rank-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .rank-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(212,168,83,0.1); }
+  .rank-card:hover::before { opacity: 1; }
+
+  .rank-badge {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+  .rank-1 { background: linear-gradient(135deg, #ffd700, #ffb300); color: #1a1a2e; }
+  .rank-2 { background: linear-gradient(135deg, #c0c0c0, #a0a0a0); color: #1a1a2e; }
+  .rank-3 { background: linear-gradient(135deg, #cd7f32, #b8690e); color: #fff; }
+  .rank-other { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-dim); }
+
+  .rank-info { flex: 1; min-width: 0; }
+  .rank-team { font-size: 1rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rank-wine { font-size: 0.8rem; color: var(--text-dim); margin-top: 0.15rem; }
+  .rank-scores {
+    display: flex; gap: 0.6rem; align-items: center; flex-shrink: 0;
+  }
+  .score-pill {
+    text-align: center;
+    padding: 0.3rem 0.5rem;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+  }
+  .score-pill .val { font-size: 1.1rem; font-weight: 700; color: var(--gold); }
+  .score-pill .label { font-size: 0.6rem; color: var(--text-dim); margin-top: 0.1rem; }
+
+  /* Team Detail Cards */
+  .team-detail {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+  }
+  .team-detail h3 {
+    font-size: 1.1rem;
+    color: var(--gold);
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+  .detail-item {
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    padding: 0.7rem;
+  }
+  .detail-item .label { font-size: 0.7rem; color: var(--text-dim); margin-bottom: 0.2rem; }
+  .detail-item .value { font-size: 0.95rem; font-weight: 600; color: #fff; }
+  .detail-item .value.gold { color: var(--gold); }
+  .detail-item.full { grid-column: 1 / -1; }
+
+  /* Recipe section */
+  .recipe-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.3rem 0;
+  }
+  .recipe-bar .bar-label { font-size: 0.75rem; color: var(--text-dim); width: 50px; flex-shrink: 0; }
+  .recipe-bar .bar-track { flex: 1; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+  .recipe-bar .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .bar-cabernet { background: linear-gradient(90deg, #8b0000, #c41e3a); }
+  .bar-marselan { background: linear-gradient(90deg, #4a0e4e, #8b2f8b); }
+  .bar-syrah { background: linear-gradient(90deg, #2d1b69, #5b3fa0); }
+  .recipe-bar .bar-val { font-size: 0.75rem; color: var(--text); width: 40px; text-align: right; }
+
+  /* Rules */
+  .rules-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+  }
+  .rules-card h3 {
+    font-size: 1rem;
+    color: var(--gold);
+    margin-bottom: 0.8rem;
+  }
+  .rules-card p, .rules-card li {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .rules-card ul { padding-left: 1.2rem; }
+  .rules-card li { margin-bottom: 0.4rem; }
+  .price-chain {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    margin: 1rem 0;
+    flex-wrap: wrap;
+  }
+  .price-chain .node {
+    background: rgba(212,168,83,0.15);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 0.5rem 0.8rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--gold);
+  }
+  .price-chain .arrow { color: var(--text-dim); font-size: 1.2rem; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-dim);
+  }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+  .empty-state p { font-size: 0.9rem; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 2rem 1rem;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    opacity: 0.5;
+  }
+
+  /* Responsive */
+  @media (max-width: 380px) {
+    .hero h1 { font-size: 1.3rem; }
+    .rank-scores { gap: 0.3rem; }
+    .score-pill .val { font-size: 0.95rem; }
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Data refresh indicator */
+  .refresh-bar {
+    text-align: center;
+    padding: 0.5rem;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    opacity: 0.6;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-icon">🍷</div>
+  <h1>调酒商业模拟</h1>
+  <div class="subtitle">Cocktail Business Simulation</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="leaderboard">🏆 排行榜</div>
+  <div class="tab" data-tab="teams">🍸 队伍详情</div>
+  <div class="tab" data-tab="rules">📋 规则说明</div>
+</div>
+
+<div class="content">
+
+  <!-- 排行榜 -->
+  <div class="section active" id="leaderboard">
+    <div class="refresh-bar">数据由飞书多维表格实时同步 · 下拉刷新</div>
+    <div id="leaderboard-list"></div>
+  </div>
+
+  <!-- 队伍详情 -->
+  <div class="section" id="teams">
+    <div class="refresh-bar">点击队伍卡片展开详情</div>
+    <div id="teams-list"></div>
+  </div>
+
+  <!-- 规则说明 -->
+  <div class="section" id="rules">
+    <div class="rules-card">
+      <h3>🎯 游戏目标</h3>
+      <p>用有限的基酒调配出最具商业价值的鸡尾酒作品，在口感创新、定价策略和品牌故事之间找到最佳平衡。</p>
+    </div>
+
+    <div class="rules-card">
+      <h3>🧪 基酒与成本</h3>
+      <ul>
+        <li><strong>赤霞珠</strong> — 3 元 / 100ml</li>
+        <li><strong>马瑟兰</strong> — 7 元 / 100ml</li>
+        <li><strong>西拉</strong> — 4.8 元 / 100ml</li>
+      </ul>
+      <p style="margin-top:0.5rem">每杯总用量 100ml，各品种用量由队伍自行决定。</p>
+    </div>
+
+    <div class="rules-card">
+      <h3>💰 价格链条</h3>
+      <div class="price-chain">
+        <div class="node">基酒成本<br><small>原料总价</small></div>
+        <div class="arrow">→ ÷0.4 →</div>
+        <div class="node">出厂价<br><small>含运营成本</small></div>
+        <div class="arrow">→ ×3 →</div>
+        <div class="node">建议零售价<br><small>渠道终端价</small></div>
+      </div>
+      <p>定价偏离建议零售价越远，评分越低。</p>
+    </div>
+
+    <div class="rules-card">
+      <h3>📊 评分体系</h3>
+      <ul>
+        <li><strong>风险创新分（0-10）</strong>：混酿创新度 + 配比平衡度</li>
+        <li><strong>定价分（0-10）</strong>：定价接近建议零售价的程度</li>
+        <li><strong>品牌分（0-10）</strong>：庄主主观评分，考量品牌故事与定位</li>
+        <li><strong>平均分</strong> = 三项平均分</li>
+        <li><strong>需求量（瓶）</strong> = 平均分 × 100</li>
+      </ul>
+    </div>
+
+    <div class="rules-card">
+      <h3>🏅 创新加分规则</h3>
+      <ul>
+        <li>单一品种：0 分</li>
+        <li>成熟双品种组合：2 分</li>
+        <li>创新双品种（马瑟兰+西拉）：3.5 分</li>
+        <li>三品种混酿：5 分</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  调酒商业模拟 · Powered by 飞书多维表格
+</div>
+
+<script>
+// ===== Demo Data (replace with real API data later) =====
+const demoData = [
+  {
+    id: 1, team: '微醺诗人', wine: '暮光之城', round: 1,
+    cabernet: 40, marselan: 35, syrah: 25,
+    riskScore: 8.5, priceScore: 7.2, brandScore: 8.0,
+    price: 138, status: '已评分',
+    desc: '以暮色为灵感，层次丰富如黄昏渐变',
+    story: '献给每一个在都市中寻找诗意的灵魂'
+  },
+  {
+    id: 2, team: '醉猫工坊', wine: '东方既白', round: 1,
+    cabernet: 30, marselan: 40, syrah: 30,
+    riskScore: 7.0, priceScore: 8.5, brandScore: 7.5,
+    price: 118, status: '已评分',
+    desc: '清新优雅，如清晨第一缕光',
+    story: '用一杯酒开启新一天的可能'
+  },
+  {
+    id: 3, team: '杯中风暴', wine: '暗夜烈焰', round: 1,
+    cabernet: 60, marselan: 25, syrah: 15,
+    riskScore: 6.0, priceScore: 6.8, brandScore: 9.0,
+    price: 158, status: '已评分',
+    desc: '浓烈奔放，一口点燃你的夜晚',
+    story: '致敬所有不甘平庸的灵魂'
+  },
+  {
+    id: 4, team: '半糖主义', wine: '春日序曲', round: 1,
+    cabernet: 20, marselan: 30, syrah: 50,
+    riskScore: 7.8, priceScore: 7.5, brandScore: null,
+    price: 128, status: '已提交',
+    desc: '轻盈甜美，春天的味道',
+    story: '给生活加点甜'
+  }
+];
+
+// ===== Calculations =====
+const BASE_PRICES = { cabernet: 3, marselan: 7, syrah: 4.8 };
+
+function calcCost(d) {
+  return (d.cabernet/100)*BASE_PRICES.cabernet + (d.marselan/100)*BASE_PRICES.marselan + (d.syrah/100)*BASE_PRICES.syrah;
+}
+function calcFactory(cost) { return cost / 0.4; }
+function calcRetail(factory) { return factory * 3; }
+function calcAvg(d) {
+  if (d.brandScore === null) return null;
+  return (d.riskScore + d.priceScore + d.brandScore) / 3;
+}
+function calcDemand(avg) { return avg !== null ? Math.round(avg * 100) : null; }
+
+// ===== Render Leaderboard =====
+function renderLeaderboard() {
+  const list = document.getElementById('leaderboard-list');
+  const scored = demoData
+    .map(d => ({ ...d, avg: calcAvg(d), demand: calcDemand(calcAvg(d)), retail: calcRetail(calcFactory(calcCost(d))) }))
+    .filter(d => d.avg !== null)
+    .sort((a, b) => b.avg - a.avg);
+
+  if (scored.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="icon">🏆</div><p>暂无评分数据<br>等待庄主完成评审</p></div>';
+    return;
+  }
+
+  list.innerHTML = scored.map((d, i) => {
+    const rankClass = i < 3 ? `rank-${i+1}` : 'rank-other';
+    const rankText = i < 3 ? ['🥇','🥈','🥉'][i] : (i+1);
+    return `
+      <div class="rank-card" onclick="showTeam(${d.id})">
+        <div class="rank-badge ${rankClass}">${rankText}</div>
+        <div class="rank-info">
+          <div class="rank-team">${d.team}</div>
+          <div class="rank-wine">${d.wine} · ¥${d.price}/瓶</div>
+        </div>
+        <div class="rank-scores">
+          <div class="score-pill">
+            <div class="val">${d.avg.toFixed(1)}</div>
+            <div class="label">平均分</div>
+          </div>
+          <div class="score-pill">
+            <div class="val">${d.demand}</div>
+            <div class="label">需求量</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===== Render Teams =====
+function renderTeams() {
+  const list = document.getElementById('teams-list');
+  list.innerHTML = demoData.map(d => {
+    const cost = calcCost(d);
+    const factory = calcFactory(cost);
+    const retail = calcRetail(factory);
+    const avg = calcAvg(d);
+    const total = d.cabernet + d.marselan + d.syrah;
+
+    return `
+      <div class="team-detail" id="team-${d.id}">
+        <h3>🍸 ${d.team} <span style="font-size:0.8rem;color:var(--text-dim);font-weight:400">${d.wine}</span></h3>
+        
+        <div class="detail-grid">
+          <div class="detail-item">
+            <div class="label">轮次</div>
+            <div class="value">第 ${d.round} 轮</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">状态</div>
+            <div class="value" style="color:${d.status==='已评分'?'var(--gold)':'var(--text-dim)'}">${d.status}</div>
+          </div>
+          <div class="detail-item full">
+            <div class="label">基酒配比</div>
+            <div class="recipe-bar">
+              <span class="bar-label">赤霞珠</span>
+              <div class="bar-track"><div class="bar-fill bar-cabernet" style="width:${d.cabernet}%"></div></div>
+              <span class="bar-val">${d.cabernet}ml</span>
+            </div>
+            <div class="recipe-bar">
+              <span class="bar-label">马瑟兰</span>
+              <div class="bar-track"><div class="bar-fill bar-marselan" style="width:${d.marselan}%"></div></div>
+              <span class="bar-val">${d.marselan}ml</span>
+            </div>
+            <div class="recipe-bar">
+              <span class="bar-label">西拉</span>
+              <div class="bar-track"><div class="bar-fill bar-syrah" style="width:${d.syrah}%"></div></div>
+              <span class="bar-val">${d.syrah}ml</span>
+            </div>
+          </div>
+          <div class="detail-item">
+            <div class="label">基酒成本</div>
+            <div class="value">¥${cost.toFixed(2)}</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">出厂价</div>
+            <div class="value">¥${factory.toFixed(1)}</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">队伍定价</div>
+            <div class="value gold">¥${d.price}/瓶</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">建议零售价</div>
+            <div class="value">¥${retail.toFixed(1)}</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">风险创新分</div>
+            <div class="value">${d.riskScore}</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">定价分</div>
+            <div class="value">${d.priceScore}</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">品牌分</div>
+            <div class="value">${d.brandScore !== null ? d.brandScore : '待评分'}</div>
+          </div>
+          <div class="detail-item">
+            <div class="label">平均分 / 需求量</div>
+            <div class="value gold">${avg !== null ? avg.toFixed(1) + ' / ' + Math.round(avg*100) + '瓶' : '—'}</div>
+          </div>
+          <div class="detail-item full">
+            <div class="label">定位一句话</div>
+            <div class="value" style="font-size:0.85rem">${d.desc}</div>
+          </div>
+          <div class="detail-item full">
+            <div class="label">品牌故事</div>
+            <div class="value" style="font-size:0.85rem">${d.story}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===== Tab Switching =====
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
+
+function showTeam(id) {
+  document.querySelector('.tab[data-tab="teams"]').click();
+  setTimeout(() => {
+    const el = document.getElementById('team-' + id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
+
+// ===== Pull to refresh =====
+let startY = 0;
+document.addEventListener('touchstart', e => { startY = e.touches[0].clientY; });
+document.addEventListener('touchend', e => {
+  const diff = e.changedTouches[0].clientY - startY;
+  if (diff > 80 && window.scrollY === 0) {
+    renderLeaderboard();
+    renderTeams();
+  }
+});
+
+// ===== Init =====
+renderLeaderboard();
+renderTeams();
+</script>
+</body>
+</html>
